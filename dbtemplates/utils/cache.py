@@ -1,8 +1,10 @@
 from django.core import signals
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.sites.models import Site
 from django.template.defaultfilters import slugify
 
 from dbtemplates.conf import settings
+from dbtemplates.middleware import get_request
 
 
 def get_cache_backend():
@@ -22,7 +24,12 @@ cache = get_cache_backend()
 
 
 def get_cache_key(name):
-    current_site = Site.objects.get_current()
+    try:
+        current_site = Site.objects.get_current()
+    except ImproperlyConfigured:
+        # todo: this probably needs its own try/catch
+        request = get_request()
+        current_site = Site.objects.get_current(request=request)
     return 'dbtemplates::%s::%s' % (slugify(name), current_site.pk)
 
 
