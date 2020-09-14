@@ -1,8 +1,10 @@
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
 from django.db import router
 from django.template import Origin, TemplateDoesNotExist
 from django.template.loaders.base import Loader as BaseLoader
 
+from dbtemplates.middleware import get_request
 from dbtemplates.models import Template
 from dbtemplates.utils.cache import (cache, get_cache_key,
                                      set_and_return, get_cache_notfound_key)
@@ -49,7 +51,13 @@ class Loader(BaseLoader):
         # * If all of the above steps have failed we generate a new key
         #   in the cache indicating that queries failed, with the current
         #   timestamp.
-        site = Site.objects.get_current()
+        try:
+            site = Site.objects.get_current()
+        except ImproperlyConfigured:
+            # todo: this probably needs its own try/catch
+            request = get_request()
+            site = Site.objects.get_current(request=request)
+
         cache_key = get_cache_key(template_name)
         if cache:
             try:
