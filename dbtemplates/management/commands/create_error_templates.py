@@ -1,8 +1,11 @@
 import sys
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import CommandError, BaseCommand
 from django.contrib.sites.models import Site
 
+from dbtemplates.middleware import get_request
 from dbtemplates.models import Template
+
 
 TEMPLATES = {
     404: """
@@ -36,6 +39,10 @@ class Command(BaseCommand):
         force = options.get('force')
         try:
             site = Site.objects.get_current()
+        except ImproperlyConfigured:
+            # todo: this probably needs its own try/catch
+            request = get_request()
+            site = Site.objects.get_current(request=request)
         except Site.DoesNotExist:
             raise CommandError("Please make sure to have the sites contrib "
                                "app installed and setup with a site object")
